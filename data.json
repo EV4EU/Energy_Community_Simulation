@@ -8,6 +8,22 @@
       "Ann",
       "baseload"
     ],
+    "assets": [
+      {
+        "type": "battery",
+        "initial_soc": 3.45,
+        "max": 3.45,
+        "min": 0
+      },
+      {
+        "type": "pv",
+        "capacity": 50
+      },
+      {
+        "type": "pv",
+        "capacity": 25
+      }
+    ],
     "appliances": [
       "Fridge",
       "TV",
@@ -555,6 +571,12 @@
       "Ann",
       "baseload"
     ],
+    "assets": [
+      {
+        "type": "pv",
+        "capacity": 25
+      }
+    ],
     "appliances": [
       "Fridge",
       "TV",
@@ -1101,6 +1123,7 @@
       "Bill",
       "baseload"
     ],
+    "assets": [],
     "appliances": [
       "Fridge",
       "TV",
@@ -1993,6 +2016,7 @@
       "Toby",
       "baseload"
     ],
+    "assets": [],
     "appliances": [
       "Fridge",
       "TV",
@@ -3511,6 +3535,7 @@
       "John",
       "baseload"
     ],
+    "assets": [],
     "appliances": [
       "Fridge",
       "TV",
@@ -4664,4 +4689,5 @@
 
     ]
   }
+
 ]

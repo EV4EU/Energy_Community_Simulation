@@ -290,7 +290,7 @@ def convert_series_to_df(series, column):
     return df
 
 
-def pyomoStrategy(reg, path_steps_minute, path_steps_after_opt):
+def run_strategy(reg, path_steps_minute, path_steps_after_opt):
 
     buy_price_hour_kwh = [0.0918, 0.0918, 0.0918, 0.0918, 0.0918, 0.0918, 0.0918, 0.0918, 0.2417, 0.2417, 0.2417, 0.1484, 0.1484, 0.1484, 0.1484, 0.1484, 0.1484, 0.1484, 0.2417, 0.2417, 0.2417, 0.1484, 0.0918, 0.0918]
     sell_price_hour_kwh = [0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163]
@@ -332,4 +332,4 @@ if __name__ == "__main__":
         reg.execute(num_days) # Renewable Production
         cmg.execute() # Netload Calculation
 
-    pyomoStrategy(reg, path_steps_minutes, path_steps_after_opt)
+    run_strategy(reg, path_steps_minutes, path_steps_after_opt)

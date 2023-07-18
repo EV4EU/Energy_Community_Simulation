@@ -288,7 +288,7 @@ def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimizat
     dfs = cm.dataframes
 
     # Show some plots
-    show_plots()
+    show_plots(dfs, path_steps_minutes, path_steps_after_otimization)
 
     # Prepare the outputs
     prepare_outputs(dfs)

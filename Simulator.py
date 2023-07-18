@@ -16,7 +16,77 @@ from procsimulator.Evaluation import Evaluation
 from CommunityManagement import CommunityManagement
 
 
-def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimization):
+def prepare_outputs(dfs):
+
+    # Prepend the column names with the name of the house
+    h_demand_df = dfs["demand_df"].add_prefix('Demand H')
+    h_demand_df.index = np.arange(1, 25)
+    h_prod_df = dfs["h_prod_df"].transpose().add_prefix('Production H')
+    h_prod_df.index = np.arange(1, 25)
+    h_pImp_df = dfs["h_pImp_df"].transpose().add_prefix('Import H')
+    h_pImp_df.index = np.arange(1, 25)
+    h_pExp_df = dfs["h_pExp_df"].transpose().add_prefix('Export H')
+    h_pExp_df.index = np.arange(1, 25)
+    h_s_soc_df = dfs["h_s_soc_df"].groupby(level=[0]).sum().add_prefix('Total SOC H') # level 0 - group by hours / level 1 - group by house storages
+    h_s_charge_df = dfs["h_s_charge_df"].groupby(level=[0]).sum().add_prefix('Total Charge H')
+    h_s_discharge_df = dfs["h_s_discharge_df"].groupby(level=[0]).sum().add_prefix('Total DisCharge H')
+
+
+    demand_df = convert_series_to_df(dfs["demand_df"].transpose().sum(), "Demand")
+    production_df = convert_series_to_df(dfs["production_df"], "Production")
+    pImp_df = convert_series_to_df(dfs["pImp_df"], "Import")
+    pExp_df = convert_series_to_df(dfs["pExp_df"], "Export")
+    sSoc_df = convert_series_to_df(dfs["sSoc_df"].sum(), "St Soc")
+    sCharge_df = convert_series_to_df(dfs["sCharge_df"].sum(), "St Charge")
+    sDischarge_df = convert_series_to_df(dfs["sDischarge_df"].sum(), "St Discharge")
+    evSoc_df = convert_series_to_df(dfs["evSoc_df"].sum(), "EVs SOC")
+    evCharge_df = convert_series_to_df(dfs["evCharge_df"].sum(), "EVs Charge")
+    evDischarge_df = convert_series_to_df(dfs["evDischarge_df"].sum(), "EVs Discharge")
+    ev_tripn_df = convert_series_to_df(dfs["ev_tripn_df"].transpose().sum(), "EVs Tripn")
+    ev_connected_df = convert_series_to_df(dfs["ev_connected_df"].transpose().sum(), "EVs Connected")
+    ev_travelling_df = convert_series_to_df(dfs["ev_travelling_df"].transpose().sum(), "EVs Travelling")
+
+    output_df = pd.concat([h_demand_df, h_prod_df, h_pImp_df, h_pExp_df, h_s_soc_df, h_s_charge_df, h_s_discharge_df, demand_df, production_df, pImp_df, pExp_df, sSoc_df, sCharge_df, sDischarge_df, evSoc_df, evCharge_df, evDischarge_df, ev_tripn_df, ev_connected_df, ev_travelling_df], axis=1)
+    print(output_df)
+
+    output_df.to_csv("output.csv", sep=";")
+
+
+    for house in np.arange(1, len(cg.get_community())+1):
+        house_demand_df = dfs["demand_df"][house].to_frame()
+        house_demand_df.columns = ["Demand"]
+        house_demand_df.index = np.arange(1, 25)
+        house_prod_df = dfs["h_prod_df"].transpose()[house].to_frame()
+        house_prod_df.columns = ["Production"]
+        house_pimp_df = dfs["h_pImp_df"].transpose()[house].to_frame()
+        house_pimp_df.columns = ["Import"]
+        house_pexp_df = dfs["h_pExp_df"].transpose()[house].to_frame()
+        house_pexp_df.columns = ["Export"]
+        house_soc_df = pd.DataFrame(dfs["h_s_soc_df"][house].transpose().to_numpy().reshape(24,2))
+        house_soc_df.columns +=1
+        house_soc_df = house_soc_df.add_prefix('SOC ')
+        house_soc_df.index = np.arange(1, 25)
+        house_charge_df = pd.DataFrame(dfs["h_s_charge_df"][house].transpose().to_numpy().reshape(24,2))
+        house_charge_df.columns +=1
+        house_charge_df = house_charge_df.add_prefix('Charge ')
+        house_charge_df.index = np.arange(1, 25)
+        house_discharge_df = pd.DataFrame(dfs["h_s_discharge_df"][house].transpose().to_numpy().reshape(24,2))
+        house_discharge_df.columns +=1
+        house_discharge_df = house_discharge_df.add_prefix('Discharge ')
+        house_discharge_df.index = np.arange(1, 25)
+        house_total_soc_df = pd.DataFrame(dfs["h_s_soc_df"].groupby(level=[0]).sum()[house])
+        house_total_soc_df.columns = ["Total SOC"]
+        house_total_charge_df = pd.DataFrame(dfs["h_s_charge_df"].groupby(level=[0]).sum()[house])
+        house_total_charge_df.columns = ["Total Charge"]
+        house_total_discharge_df = pd.DataFrame(dfs["h_s_discharge_df"].groupby(level=[0]).sum()[house])
+        house_total_discharge_df.columns = ["Total Discharge"]
+        output_house_df = pd.concat([house_demand_df, house_prod_df, house_pimp_df, house_pexp_df, house_soc_df, house_charge_df, house_discharge_df, house_total_soc_df, house_total_charge_df, house_total_discharge_df], axis=1)
+        print(output_house_df)
+        output_house_df.to_csv("output_h" + str(house) + ".csv", sep=";")
+
+
+def show_plots(dfs, path_steps_minutes, path_steps_after_otimization):
+
 
     before = pd.read_csv(path_steps_minutes + '/netload.csv', sep=';')
     before.columns = ['Date', 'Demand', 'PV_Production', 'Wind_Production', 'Production', 'Netload']
@@ -56,8 +126,6 @@ def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimizat
     opt[:24*60*1]["Difference"].plot(legend=True, label='Difference')
     plt.show()
 
-
-    dfs = cm.dataframes
 
     demandd = opt[:24*60*1]
     demandd = demandd.set_index("Date")
@@ -183,6 +251,15 @@ def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimizat
     print(cost_df)
 
 
+
+    # Plot ev charge graph
+    dfs['evCharge_df'].sum(axis=0).plot(legend=True, label='EV Charge')
+    dfs['evDischarge_df'].sum(axis=0).plot(legend=True, label='EV Discharge')
+    dfs['evSoc_df'].sum(axis=0).plot(legend=True, label='EV SOC')
+    #dfs['demand_df'].transpose().plot(legend=True, label='Demand')
+    plt.show()
+
+
     # Calculate the metrics for the input
     evaluation_in = Evaluation(reg, before.iloc[:24*60], 0)
     print("Energy Used from Grid: " + "{:.2f}".format(evaluation_in.get_energy_used_from_grid()) + " kWh")
@@ -193,19 +270,8 @@ def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimizat
     print("Total Cost: " + "{:.2f}".format(cost_df.sum()) + "€")
 
 
-
-    # Plot ev charge graph
-    dfs['evCharge_df'].sum(axis=0).plot(legend=True, label='EV Charge')
-    dfs['evDischarge_df'].sum(axis=0).plot(legend=True, label='EV Discharge')
-    dfs['evSoc_df'].sum(axis=0).plot(legend=True, label='EV SOC')
-    #dfs['demand_df'].transpose().plot(legend=True, label='Demand')
-    plt.show()
-
-
-
     # Calculate the metrics for the output
     evaluation_out = Evaluation(reg, dfs, 0)
-
     print("Energy Used from Grid: " + "{:.2f}".format(evaluation_out.get_energy_imported_from_grid()) + " kWh")
     print("Energy Used from Production: " + "{:.2f}".format(evaluation_out.get_energy_used_from_production()) + " kWh")
     print("Energy Not Used from Production: " + "{:.2f}".format(evaluation_out.get_energy_exported_to_grid()) + " kWh")
@@ -216,71 +282,17 @@ def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimizat
 
 
 
-    # Prepend the column names with the name of the house
-    h_demand_df = dfs["demand_df"].add_prefix('Demand H')
-    h_demand_df.index = np.arange(1, 25)
-    h_prod_df = dfs["h_prod_df"].transpose().add_prefix('Production H')
-    h_prod_df.index = np.arange(1, 25)
-    h_pImp_df = dfs["h_pImp_df"].transpose().add_prefix('Import H')
-    h_pImp_df.index = np.arange(1, 25)
-    h_pExp_df = dfs["h_pExp_df"].transpose().add_prefix('Export H')
-    h_pExp_df.index = np.arange(1, 25)
-    h_s_soc_df = dfs["h_s_soc_df"].groupby(level=[0]).sum().add_prefix('Total SOC H') # level 0 - group by hours / level 1 - group by house storages
-    h_s_charge_df = dfs["h_s_charge_df"].groupby(level=[0]).sum().add_prefix('Total Charge H')
-    h_s_discharge_df = dfs["h_s_discharge_df"].groupby(level=[0]).sum().add_prefix('Total DisCharge H')
+def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimization):
 
+    # Get Optimization outputs
+    dfs = cm.dataframes
 
-    demand_df = convert_series_to_df(dfs["demand_df"].transpose().sum(), "Demand")
-    production_df = convert_series_to_df(dfs["production_df"], "Production")
-    pImp_df = convert_series_to_df(dfs["pImp_df"], "Import")
-    pExp_df = convert_series_to_df(dfs["pExp_df"], "Export")
-    sSoc_df = convert_series_to_df(dfs["sSoc_df"].sum(), "St Soc")
-    sCharge_df = convert_series_to_df(dfs["sCharge_df"].sum(), "St Charge")
-    sDischarge_df = convert_series_to_df(dfs["sDischarge_df"].sum(), "St Discharge")
-    evSoc_df = convert_series_to_df(dfs["evSoc_df"].sum(), "EVs SOC")
-    evCharge_df = convert_series_to_df(dfs["evCharge_df"].sum(), "EVs Charge")
-    evDischarge_df = convert_series_to_df(dfs["evDischarge_df"].sum(), "EVs Discharge")
-    ev_tripn_df = convert_series_to_df(dfs["ev_tripn_df"].transpose().sum(), "EVs Tripn")
-    ev_connected_df = convert_series_to_df(dfs["ev_connected_df"].transpose().sum(), "EVs Connected")
-    ev_travelling_df = convert_series_to_df(dfs["ev_travelling_df"].transpose().sum(), "EVs Travelling")
+    # Show some plots
+    show_plots()
 
-    output_df = pd.concat([h_demand_df, h_prod_df, h_pImp_df, h_pExp_df, h_s_soc_df, h_s_charge_df, h_s_discharge_df, demand_df, production_df, pImp_df, pExp_df, sSoc_df, sCharge_df, sDischarge_df, evSoc_df, evCharge_df, evDischarge_df, ev_tripn_df, ev_connected_df, ev_travelling_df], axis=1)
-    print(output_df)
+    # Prepare the outputs
+    prepare_outputs(dfs)
 
-    output_df.to_csv("output.csv", sep=";")
-
-
-    for house in np.arange(1, len(cg.get_community())+1):
-        house_demand_df = dfs["demand_df"][house].to_frame()
-        house_demand_df.columns = ["Demand"]
-        house_demand_df.index = np.arange(1, 25)
-        house_prod_df = dfs["h_prod_df"].transpose()[house].to_frame()
-        house_prod_df.columns = ["Production"]
-        house_pimp_df = dfs["h_pImp_df"].transpose()[house].to_frame()
-        house_pimp_df.columns = ["Import"]
-        house_pexp_df = dfs["h_pExp_df"].transpose()[house].to_frame()
-        house_pexp_df.columns = ["Export"]
-        house_soc_df = pd.DataFrame(dfs["h_s_soc_df"][house].transpose().to_numpy().reshape(24,2))
-        house_soc_df.columns +=1
-        house_soc_df = house_soc_df.add_prefix('SOC ')
-        house_soc_df.index = np.arange(1, 25)
-        house_charge_df = pd.DataFrame(dfs["h_s_charge_df"][house].transpose().to_numpy().reshape(24,2))
-        house_charge_df.columns +=1
-        house_charge_df = house_charge_df.add_prefix('Charge ')
-        house_charge_df.index = np.arange(1, 25)
-        house_discharge_df = pd.DataFrame(dfs["h_s_discharge_df"][house].transpose().to_numpy().reshape(24,2))
-        house_discharge_df.columns +=1
-        house_discharge_df = house_discharge_df.add_prefix('Discharge ')
-        house_discharge_df.index = np.arange(1, 25)
-        house_total_soc_df = pd.DataFrame(dfs["h_s_soc_df"].groupby(level=[0]).sum()[house])
-        house_total_soc_df.columns = ["Total SOC"]
-        house_total_charge_df = pd.DataFrame(dfs["h_s_charge_df"].groupby(level=[0]).sum()[house])
-        house_total_charge_df.columns = ["Total Charge"]
-        house_total_discharge_df = pd.DataFrame(dfs["h_s_discharge_df"].groupby(level=[0]).sum()[house])
-        house_total_discharge_df.columns = ["Total Discharge"]
-        output_house_df = pd.concat([house_demand_df, house_prod_df, house_pimp_df, house_pexp_df, house_soc_df, house_charge_df, house_discharge_df, house_total_soc_df, house_total_charge_df, house_total_discharge_df], axis=1)
-        print(output_house_df)
-        output_house_df.to_csv("output_h" + str(house) + ".csv", sep=";")
 
 
 def convert_series_to_df(series, column):

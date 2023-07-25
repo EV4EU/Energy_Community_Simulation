@@ -16,205 +16,7 @@ from procsimulator.Evaluation import Evaluation
 from CommunityManagement import CommunityManagement
 
 
-def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimization):
-
-    before = pd.read_csv(path_steps_minutes + '/netload.csv', sep=';')
-    before.columns = ['Date', 'Demand', 'PV_Production', 'Wind_Production', 'Production', 'Netload']
-    before['Date'] = pd.to_datetime(before['Date'])
-    before.set_index('Date')
-
-    before[:24*60*1]["Demand"].plot(legend=True, label='Demand')
-    before[:24*60*1]["Production"].plot(legend=True, label='Production')
-    plt.rcParams['figure.figsize'] = [10, 5]
-    plt.xlabel("Time (Hours)")
-    plt.ylabel("Power (W)")
-    #plt.savefig('before_opt_2.png')
-    plt.show()
-
-
-
-    # Getting the consumption profiles after the optimization
-    opt = pd.read_csv(path_steps_after_otimization + '/netload.csv', sep=';')
-    opt.columns = ['Date', 'Demand', 'PV_Production', 'Wind_Production', 'Production', 'Netload']
-    opt['Date'] = pd.to_datetime(opt['Date'])
-    opt.set_index('Date')
-
-
-    opt[:24*60*1]["Demand"].plot(legend=True, label='Demand')
-    opt[:24*60*1]["Production"].plot(legend=True, label='Production')
-    plt.rcParams['figure.figsize'] = [10, 5]
-    plt.xlabel("Time (Hours)")
-    plt.ylabel("Power (W)")
-    #plt.savefig('after_opt_2.png')
-    plt.show()
-
-
-    # Calculate the difference between Demand and Production
-    opt['Difference'] = opt['Demand'] - opt['Production']
-
-    # Plot the difference
-    opt[:24*60*1]["Difference"].plot(legend=True, label='Difference')
-    plt.show()
-
-
-    dfs = cm.dataframes
-
-    demandd = opt[:24*60*1]
-    demandd = demandd.set_index("Date")
-    demandd = demandd.groupby(demandd.index.hour).mean()
-
-
-    # ----- 1 -----
-
-
-    #fig, ax = plt.subplots()
-    #plt.stackplot(demandd.index, demandd["Production"], dfs['evSoc_df'].sum(), labels=['Production', 'SOC'])
-    #demandd["Demand"].plot(color='green')
-    #ax.legend(loc='upper left')
-    #ax.set_title('After Optimization')
-    #ax.set_xlabel('Hours')
-    #ax.set_ylabel('Energy (Wh)')
-    #plt.savefig('after_opt_2b.png')
-
-
-    # ----- 2 -----
-
-    #dfs["prod_used_df"] = dfs["production_df"] - dfs["demand_df"].transpose()[0][1:]
-    #dfs["prod_used_df"].loc[dfs["prod_used_df"] >= 0] = dfs["production_df"] - dfs["pExp_df"] - dfs["evCharge_df"].sum() + dfs["evDischarge_df"].sum()
-    #dfs["prod_used_df"].loc[dfs["prod_used_df"] < 0] = dfs["production_df"]
-
-    #dfs["battery_used_df"] = dfs["demand_df"].transpose()[0][1:] - dfs["prod_used_df"] - dfs["pImp_df"]
-
-    #fig, ax = plt.subplots()
-    #plt.stackplot(dfs["pImp_df"].index, dfs["pImp_df"],  dfs["prod_used_df"], dfs["battery_used_df"], labels=['Grid', 'Production', 'EVs Discharge'])
-    #dfs["demand_df"].transpose()[0][1:].plot(color='blue', label='Demand')
-    #ax.legend(loc='upper left')
-    #ax.set_title('After Optimization')
-    #ax.set_xlabel('Hours')
-    #ax.set_ylabel('Energy (Wh)')
-    #plt.savefig('after_opt_2b.png')
-
-
-    #----- 3 -----
-
-    color_map = ["#9b59b6", "#e74c3c", "#34495e", "#2ecc71"]
-
-
-    fig, ax = plt.subplots()
-    plt.stackplot(dfs["pImp_df"].index, dfs["pImp_df"],  dfs["production_df"], dfs["evDischarge_df"].sum(), labels=['Grid Import', 'Production', 'EVs Discharge'], colors = color_map)
-    dfs["demand_df"].transpose().sum().plot(color='green', label='Demand', linewidth=3)
-    ax.legend(loc='upper left')
-    ax.set_title('After 2nd Optimization')
-    ax.set_xlabel('Hours')
-    ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
-    #plt.savefig('after_opt_2.png')
-    plt.show()
-
-    fig, ax = plt.subplots()
-    plt.stackplot(dfs["pExp_df"].index, dfs["pExp_df"], dfs["demand_df"].transpose().sum(), dfs["evCharge_df"].sum(), labels=['Grid Export', 'Demand', 'EVs Charge'], colors = color_map)
-    dfs["production_df"].plot(color='green', label='Production', linewidth=3)
-    #dfs["evSoc_df"].sum().plot(color='black')
-    ax.legend(loc='upper left')
-    ax.set_title('After 2nd Optimization')
-    ax.set_xlabel('Hours')
-    ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
-    #plt.savefig('after_opt_2b.png')
-    plt.show()
-
-
-    beforee = before[:24*60*1]
-    beforee = beforee.set_index("Date")
-    beforee = beforee.groupby(beforee.index.hour).mean()
-
-
-    #fig, ax = plt.subplots()
-    #ax.stackplot(beforee.index, beforee["Production"], labels=['Production'])
-    #beforee["Demand"].plot(color='green')
-    #ax.legend(loc='upper left')
-    #ax.set_title('Before Optimization')
-    #ax.set_xlabel('Hours')
-    #ax.set_ylabel('Energy (Wh)')
-    #plt.savefig('before_opt_2b.png')
-
-    beforee["pImp"] = beforee["Demand"] - beforee["Production"]
-    beforee["pImp"].loc[beforee["pImp"] < 0] = 0
-
-
-    beforee["pExp"] = beforee["Production"] - beforee["Demand"]
-    beforee["pExp"].loc[beforee["pExp"] < 0] = 0
-
-
-    color_map = ["#e74c3c", "#9b59b6", "#34495e", "#2ecc71"]
-
-
-    fig, ax = plt.subplots()
-    plt.stackplot(beforee["Production"].index, beforee["Production"], beforee["pImp"], labels=['Production', 'Grid Import'], colors = color_map)
-    beforee["Demand"].plot(color='green', label='Demand', linewidth=3)
-    ax.legend(loc='upper left')
-    ax.set_title('Before Optimization')
-    ax.set_xlabel('Hours')
-    ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
-    #plt.savefig('before_opt_2.png')
-    plt.show()
-
-
-    fig, ax = plt.subplots()
-    plt.stackplot(beforee["Demand"].index, beforee["Demand"], beforee["pExp"], labels=['Demand', 'Grid Export'], colors = color_map)
-    beforee["Production"].plot(color='green', label='Production', linewidth=3)
-    #dfs["evSoc_df"].sum().plot(color='black')
-    ax.legend(loc='upper left')
-    ax.set_title('Before Optimization')
-    ax.set_xlabel('Hours')
-    ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
-    #plt.savefig('before_opt_2b.png')
-    plt.show()
-
-
-    before_df = before.iloc[:24*60]
-    dt = pd.to_datetime(before_df.Date)
-    before_demand_df = before_df.groupby([dt.dt.hour]).Demand.mean()
-    before_demand_df.index = np.arange(1, len(before_demand_df) + 1)
-
-    cost_df = dfs['importPrices_df']*before_demand_df/1000
-    print(cost_df)
-
-
-    # Calculate the metrics for the input
-    evaluation_in = Evaluation(reg, before.iloc[:24*60], 0)
-    print("Energy Used from Grid: " + "{:.2f}".format(evaluation_in.get_energy_used_from_grid()) + " kWh")
-    print("Energy Used from Production: " + "{:.2f}".format(evaluation_in.get_energy_used_from_pv()*2) + " kWh")
-    print("Energy Not Used from Production: " + "{:.2f}".format(evaluation_in.get_energy_not_used_from_pv()) + " kWh")
-    print("Self Sufficiency (SS): " + "{:.2f}".format(evaluation_in.get_self_sufficiency()*100) + "%")
-    print("Self Consumption (SC): " + "{:.2f}".format(evaluation_in.get_self_consumption()*100) + "%")
-    print("Total Cost: " + "{:.2f}".format(cost_df.sum()) + "€")
-
-
-
-    # Plot ev charge graph
-    dfs['evCharge_df'].sum(axis=0).plot(legend=True, label='EV Charge')
-    dfs['evDischarge_df'].sum(axis=0).plot(legend=True, label='EV Discharge')
-    dfs['evSoc_df'].sum(axis=0).plot(legend=True, label='EV SOC')
-    #dfs['demand_df'].transpose().plot(legend=True, label='Demand')
-    plt.show()
-
-
-
-    # Calculate the metrics for the output
-    evaluation_out = Evaluation(reg, dfs, 0)
-
-    print("Energy Used from Grid: " + "{:.2f}".format(evaluation_out.get_energy_imported_from_grid()) + " kWh")
-    print("Energy Used from Production: " + "{:.2f}".format(evaluation_out.get_energy_used_from_production()) + " kWh")
-    print("Energy Not Used from Production: " + "{:.2f}".format(evaluation_out.get_energy_exported_to_grid()) + " kWh")
-    print("Self Sufficiency (SS): " + "{:.2f}".format(evaluation_out.get_ss_without_storage()) + "%")
-    print("Self Sufficiency 2 (SS): " + "{:.2f}".format(evaluation_out.get_ss_with_storage()) + "%")
-    print("Self Consumption (SC): " + "{:.2f}".format(evaluation_out.get_sc()) + "%")
-    print("Total Cost: " + "{:.2f}".format(evaluation_out.get_costs(0.08)) + "€")
-
-
+def prepare_outputs(dfs):
 
     # Prepend the column names with the name of the house
     h_demand_df = dfs["demand_df"].add_prefix('Demand H')
@@ -283,6 +85,217 @@ def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimizat
         output_house_df.to_csv("output_h" + str(house) + ".csv", sep=";")
 
 
+def show_plots(dfs, path_steps_minutes, path_steps_after_otimization):
+
+
+    before = pd.read_csv(path_steps_minutes + '/netload.csv', sep=';')
+    before.columns = ['Date', 'Demand', 'PV_Production', 'Wind_Production', 'Production', 'Netload']
+    before['Date'] = pd.to_datetime(before['Date'])
+    before.set_index('Date')
+
+    before[:24*60*1]["Demand"].plot(legend=True, label='Demand')
+    before[:24*60*1]["Production"].plot(legend=True, label='Production')
+    plt.rcParams['figure.figsize'] = [10, 5]
+    plt.xlabel("Time (Hours)")
+    plt.ylabel("Power (W)")
+    #plt.savefig('before_opt_2.png')
+    plt.show()
+
+
+
+    # Getting the consumption profiles after the optimization
+    opt = pd.read_csv(path_steps_after_otimization + '/netload.csv', sep=';')
+    opt.columns = ['Date', 'Demand', 'PV_Production', 'Wind_Production', 'Production', 'Netload']
+    opt['Date'] = pd.to_datetime(opt['Date'])
+    opt.set_index('Date')
+
+
+    opt[:24*60*1]["Demand"].plot(legend=True, label='Demand')
+    opt[:24*60*1]["Production"].plot(legend=True, label='Production')
+    plt.rcParams['figure.figsize'] = [10, 5]
+    plt.xlabel("Time (Hours)")
+    plt.ylabel("Power (W)")
+    #plt.savefig('after_opt_2.png')
+    plt.show()
+
+
+    # Calculate the difference between Demand and Production
+    opt['Difference'] = opt['Demand'] - opt['Production']
+
+    # Plot the difference
+    opt[:24*60*1]["Difference"].plot(legend=True, label='Difference')
+    plt.show()
+
+
+    demandd = opt[:24*60*1]
+    demandd = demandd.set_index("Date")
+    demandd = demandd.groupby(demandd.index.hour).mean()
+
+
+    # ----- 1 -----
+
+
+    #fig, ax = plt.subplots()
+    #plt.stackplot(demandd.index, demandd["Production"], dfs['evSoc_df'].sum(), labels=['Production', 'SOC'])
+    #demandd["Demand"].plot(color='green')
+    #ax.legend(loc='upper left')
+    #ax.set_title('After Optimization')
+    #ax.set_xlabel('Hours')
+    #ax.set_ylabel('Energy (Wh)')
+    #plt.savefig('after_opt_2b.png')
+
+
+    # ----- 2 -----
+
+    #dfs["prod_used_df"] = dfs["production_df"] - dfs["demand_df"].transpose()[0][1:]
+    #dfs["prod_used_df"].loc[dfs["prod_used_df"] >= 0] = dfs["production_df"] - dfs["pExp_df"] - dfs["evCharge_df"].sum() + dfs["evDischarge_df"].sum()
+    #dfs["prod_used_df"].loc[dfs["prod_used_df"] < 0] = dfs["production_df"]
+
+    #dfs["battery_used_df"] = dfs["demand_df"].transpose()[0][1:] - dfs["prod_used_df"] - dfs["pImp_df"]
+
+    #fig, ax = plt.subplots()
+    #plt.stackplot(dfs["pImp_df"].index, dfs["pImp_df"],  dfs["prod_used_df"], dfs["battery_used_df"], labels=['Grid', 'Production', 'EVs Discharge'])
+    #dfs["demand_df"].transpose()[0][1:].plot(color='blue', label='Demand')
+    #ax.legend(loc='upper left')
+    #ax.set_title('After Optimization')
+    #ax.set_xlabel('Hours')
+    #ax.set_ylabel('Energy (Wh)')
+    #plt.savefig('after_opt_2b.png')
+
+
+    #----- 3 -----
+
+    color_map = ["#9b59b6", "#e74c3c", "#34495e", "#2ecc71"]
+
+
+    fig, ax = plt.subplots()
+    plt.stackplot(dfs["pImp_df"].index, dfs["pImp_df"],  dfs["production_df"], dfs["evDischarge_df"].sum(), labels=['Grid Import', 'Production', 'EVs Discharge'], colors = color_map)
+    dfs["demand_df"].index += 1
+    dfs["demand_df"].transpose().sum().plot(color='green', label='Demand', linewidth=3)
+    ax.legend(loc='upper left')
+    ax.set_title('After 2nd Optimization')
+    ax.set_xlabel('Hours')
+    ax.set_ylabel('Energy (Wh)')
+    #ax.set_ylim(0, 17000)
+    #plt.savefig('after_opt_2.png')
+    plt.show()
+
+    fig, ax = plt.subplots()
+    plt.stackplot(dfs["pExp_df"].index, dfs["pExp_df"], dfs["demand_df"].transpose().sum(), dfs["evCharge_df"].sum(), labels=['Grid Export', 'Demand', 'EVs Charge'], colors = color_map)
+    dfs["production_df"].plot(color='green', label='Production', linewidth=3)
+    #dfs["evSoc_df"].sum().plot(color='black')
+    ax.legend(loc='upper left')
+    ax.set_title('After 2nd Optimization')
+    ax.set_xlabel('Hours')
+    ax.set_ylabel('Energy (Wh)')
+    #ax.set_ylim(0, 17000)
+    #plt.savefig('after_opt_2b.png')
+    plt.show()
+
+
+    beforee = before[:24*60*1]
+    beforee = beforee.set_index("Date")
+    beforee = beforee.groupby(beforee.index.hour).mean()
+
+
+    #fig, ax = plt.subplots()
+    #ax.stackplot(beforee.index, beforee["Production"], labels=['Production'])
+    #beforee["Demand"].plot(color='green')
+    #ax.legend(loc='upper left')
+    #ax.set_title('Before Optimization')
+    #ax.set_xlabel('Hours')
+    #ax.set_ylabel('Energy (Wh)')
+    #plt.savefig('before_opt_2b.png')
+
+    beforee["pImp"] = beforee["Demand"] - beforee["Production"]
+    beforee["pImp"].loc[beforee["pImp"] < 0] = 0
+
+
+    beforee["pExp"] = beforee["Production"] - beforee["Demand"]
+    beforee["pExp"].loc[beforee["pExp"] < 0] = 0
+
+
+    color_map = ["#e74c3c", "#9b59b6", "#34495e", "#2ecc71"]
+
+
+    fig, ax = plt.subplots()
+    plt.stackplot(beforee["Production"].index, beforee["Production"], beforee["pImp"], labels=['Production', 'Grid Import'], colors = color_map)
+    beforee["Demand"].plot(color='green', label='Demand', linewidth=3)
+    ax.legend(loc='upper left')
+    ax.set_title('Before Optimization')
+    ax.set_xlabel('Hours')
+    ax.set_ylabel('Energy (Wh)')
+    #ax.set_ylim(0, 17000)
+    #plt.savefig('before_opt_2.png')
+    plt.show()
+
+
+    fig, ax = plt.subplots()
+    plt.stackplot(beforee["Demand"].index, beforee["Demand"], beforee["pExp"], labels=['Demand', 'Grid Export'], colors = color_map)
+    beforee["Production"].plot(color='green', label='Production', linewidth=3)
+    #dfs["evSoc_df"].sum().plot(color='black')
+    ax.legend(loc='upper left')
+    ax.set_title('Before Optimization')
+    ax.set_xlabel('Hours')
+    ax.set_ylabel('Energy (Wh)')
+    #ax.set_ylim(0, 17000)
+    #plt.savefig('before_opt_2b.png')
+    plt.show()
+
+
+    before_df = before.iloc[:24*60]
+    dt = pd.to_datetime(before_df.Date)
+    before_demand_df = before_df.groupby([dt.dt.hour]).Demand.mean()
+    before_demand_df.index = np.arange(1, len(before_demand_df) + 1)
+
+    cost_df = dfs['importPrices_df']*before_demand_df/1000
+    print(cost_df)
+
+
+
+    # Plot ev charge graph
+    dfs['evCharge_df'].sum(axis=0).plot(legend=True, label='EV Charge')
+    dfs['evDischarge_df'].sum(axis=0).plot(legend=True, label='EV Discharge')
+    dfs['evSoc_df'].sum(axis=0).plot(legend=True, label='EV SOC')
+    #dfs['demand_df'].transpose().plot(legend=True, label='Demand')
+    plt.show()
+
+
+    # Calculate the metrics for the input
+    evaluation_in = Evaluation(reg, before.iloc[:24*60], 0)
+    print("Energy Used from Grid: " + "{:.2f}".format(evaluation_in.get_energy_used_from_grid()) + " kWh")
+    print("Energy Used from Production: " + "{:.2f}".format(evaluation_in.get_energy_used_from_pv()*2) + " kWh")
+    print("Energy Not Used from Production: " + "{:.2f}".format(evaluation_in.get_energy_not_used_from_pv()) + " kWh")
+    print("Self Sufficiency (SS): " + "{:.2f}".format(evaluation_in.get_self_sufficiency()*100) + "%")
+    print("Self Consumption (SC): " + "{:.2f}".format(evaluation_in.get_self_consumption()*100) + "%")
+    print("Total Cost: " + "{:.2f}".format(cost_df.sum()) + "€")
+
+
+    # Calculate the metrics for the output
+    evaluation_out = Evaluation(reg, dfs, 0)
+    print("Energy Used from Grid: " + "{:.2f}".format(evaluation_out.get_energy_imported_from_grid()) + " kWh")
+    print("Energy Used from Production: " + "{:.2f}".format(evaluation_out.get_energy_used_from_production()) + " kWh")
+    print("Energy Not Used from Production: " + "{:.2f}".format(evaluation_out.get_energy_exported_to_grid()) + " kWh")
+    print("Self Sufficiency (SS): " + "{:.2f}".format(evaluation_out.get_ss_without_storage()) + "%")
+    print("Self Sufficiency 2 (SS): " + "{:.2f}".format(evaluation_out.get_ss_with_storage()) + "%")
+    print("Self Consumption (SC): " + "{:.2f}".format(evaluation_out.get_sc()) + "%")
+    print("Total Cost: " + "{:.2f}".format(evaluation_out.get_costs(0.08)) + "€")
+
+
+
+def post_processing_pyomo(cm, reg, path_steps_minutes, path_steps_after_otimization):
+
+    # Get Optimization outputs
+    dfs = cm.dataframes
+
+    # Show some plots
+    show_plots(dfs, path_steps_minutes, path_steps_after_otimization)
+
+    # Prepare the outputs
+    prepare_outputs(dfs)
+
+
+
 def convert_series_to_df(series, column):
     df = series.to_frame()
     df.index = np.arange(1, 25)
@@ -296,7 +309,7 @@ def run_strategy(reg, path_steps_minute, path_steps_after_opt):
     sell_price_hour_kwh = [0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163]
 
     cm = CommunityManagement(cg, path_steps_minutes, path_steps_after_opt)
-    cm.execute(export_prices_hour = sell_price_hour_kwh, import_prices_hour=buy_price_hour_kwh, save_to_file=False)
+    cm.execute(export_prices_hour = sell_price_hour_kwh, import_prices_hour=buy_price_hour_kwh, save_to_file=True)
 
     post_processing_pyomo(cm, reg, path_steps_minute, path_steps_after_opt)
 

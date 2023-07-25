@@ -42,6 +42,7 @@ class MinimizeCommunityCosts:
         self.minimum_soc = evs_min
         self.etrip = evs_trip
         self.initial_soc = initial_soc
+        #self.ev_p_charger = ev_p_charger
         self.availability = evs_availability
         self.travelling = evs_travelling
         self.efficiency = efficiency
@@ -133,8 +134,7 @@ class MinimizeCommunityCosts:
                 tmp.append(len(j))
             data['tim_lens'].append(tmp)
 
-
-        data['max_len'] = max([max(i) for i in data['tim_lens']]) # Maximum number of timeslots
+        data['max_len'] = max([max(i) if len(i) > 0 else 0 for i in data['tim_lens']]) # Maximum number of timeslots
         data['max_tims'] = max([len(i) for i in data['tim_lens']]) # Maximum number of items
         data['tim_lens'] = pd.DataFrame(data['tim_lens']).fillna(0)
         data['weights'] = pd.DataFrame(self.items).fillna(0)
@@ -159,6 +159,7 @@ class MinimizeCommunityCosts:
         data['minimum_soc'] = self.minimum_soc
         data['ev_trip'] = self.etrip
         data['initial_soc'] = self.initial_soc
+        #data['ev_p_charger'] = self.ev_p_charger
         data['availability'] = self.availability
         data['travelling'] = self.travelling
         data['efficiency'] = self.efficiency
@@ -197,7 +198,6 @@ class MinimizeCommunityCosts:
 
 
     def create_parameters(self, model, data):
-
         model.tim_lens = pyo.Param(model.h, model.t, initialize = self._auxDictionary(np.array(data['tim_lens'])))
         model.weights = pyo.Param(model.h, model.t, model.i, initialize = self.convert_to_tuple_dict(data['house_items'], data))
         model.dates = pyo.Param(model.h, model.t, model.i, initialize = self.convert_to_tuple_dict(data['house_items_date'], data))
@@ -216,6 +216,7 @@ class MinimizeCommunityCosts:
         model.ev_soc_max = pyo.Param(model.ev, initialize = self._auxDictionary(np.array(data['maximum_soc'])))
         model.ev_trip = pyo.Param(model.ev, initialize = self._auxDictionary(np.array(data['ev_trip'])))
         model.ev_initial_soc = pyo.Param(model.ev, initialize = self._auxDictionary(np.array(data['initial_soc'])))
+        #model.ev_p_charger = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['ev_p_charger'].transpose())))
         model.availability = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['availability'].transpose())))
         model.travelling = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['travelling'].transpose())))
         model.n = data['efficiency'] # Efficiency
@@ -392,12 +393,14 @@ class MinimizeCommunityCosts:
 
         # Charging considering the EVs availability
         def _charge_available(m,b,ev):
+            #return m.ev_charge[b,ev] <= m.ev_p_charger[b,ev] * m.availability[b,ev]
             return m.ev_charge[b,ev] <= m.p_charger * m.availability[b,ev]
         model.ch_available = pyo.Constraint(model.b, model.ev, rule = _charge_available)
 
 
         # Discharging considering the EVs availability
         def _discharge_available(m,b,ev):
+            #return m.ev_discharge[b,ev] <= m.ev_p_charger[b,ev] * m.availability[b,ev]
             return m.ev_discharge[b,ev] <= m.p_charger * m.availability[b,ev]
         model.dch_available = pyo.Constraint(model.b, model.ev, rule = _discharge_available)
 

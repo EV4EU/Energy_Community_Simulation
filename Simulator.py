@@ -170,12 +170,13 @@ def show_plots(dfs, path_steps_minutes, path_steps_after_otimization):
 
     fig, ax = plt.subplots()
     plt.stackplot(dfs["pImp_df"].index, dfs["pImp_df"],  dfs["production_df"], dfs["evDischarge_df"].sum(), labels=['Grid Import', 'Production', 'EVs Discharge'], colors = color_map)
+    dfs["demand_df"].index += 1
     dfs["demand_df"].transpose().sum().plot(color='green', label='Demand', linewidth=3)
     ax.legend(loc='upper left')
     ax.set_title('After 2nd Optimization')
     ax.set_xlabel('Hours')
     ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
+    #ax.set_ylim(0, 17000)
     #plt.savefig('after_opt_2.png')
     plt.show()
 
@@ -187,7 +188,7 @@ def show_plots(dfs, path_steps_minutes, path_steps_after_otimization):
     ax.set_title('After 2nd Optimization')
     ax.set_xlabel('Hours')
     ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
+    #ax.set_ylim(0, 17000)
     #plt.savefig('after_opt_2b.png')
     plt.show()
 
@@ -224,7 +225,7 @@ def show_plots(dfs, path_steps_minutes, path_steps_after_otimization):
     ax.set_title('Before Optimization')
     ax.set_xlabel('Hours')
     ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
+    #ax.set_ylim(0, 17000)
     #plt.savefig('before_opt_2.png')
     plt.show()
 
@@ -237,7 +238,7 @@ def show_plots(dfs, path_steps_minutes, path_steps_after_otimization):
     ax.set_title('Before Optimization')
     ax.set_xlabel('Hours')
     ax.set_ylabel('Energy (Wh)')
-    ax.set_ylim(0, 17000)
+    #ax.set_ylim(0, 17000)
     #plt.savefig('before_opt_2b.png')
     plt.show()
 
@@ -308,7 +309,7 @@ def run_strategy(reg, path_steps_minute, path_steps_after_opt):
     sell_price_hour_kwh = [0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163,0.1163]
 
     cm = CommunityManagement(cg, path_steps_minutes, path_steps_after_opt)
-    cm.execute(export_prices_hour = sell_price_hour_kwh, import_prices_hour=buy_price_hour_kwh, save_to_file=False)
+    cm.execute(export_prices_hour = sell_price_hour_kwh, import_prices_hour=buy_price_hour_kwh, save_to_file=True)
 
     post_processing_pyomo(cm, reg, path_steps_minute, path_steps_after_opt)
 

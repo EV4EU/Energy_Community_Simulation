@@ -321,8 +321,8 @@ if __name__ == "__main__":
     print(current_path)
 
     path_steps_seconds = os.path.join(current_path)
-    path_steps_minutes = "output/minute"
-    path_steps_after_opt = "output/afterfirstoptimization"
+    path_steps_minutes = "output5/minute"
+    path_steps_after_opt = "output5/afterfirstoptimization"
     num_days = "1"
     generate_community = False
 

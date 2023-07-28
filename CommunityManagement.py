@@ -45,28 +45,30 @@ class CommunityManagement(CommunityManager):
         # EVs inputs from EVs simulator
         evs_data = {}
         evs_data['EVs_Inputs'] = pd.read_csv('inputs/EVs_Inputs.csv')
+        evs_data['pchmax_ev'] = pd.read_csv('inputs/PchmaxEV.csv')
         evs_data['availability'] = pd.read_csv('inputs/alpha.csv')
         evs_data['is_traveling'] = pd.read_csv('inputs/S.csv')
 
 
-        initial_soc = evs_data['EVs_Inputs'].to_numpy()[:,0] * 1000
-        evs_min = evs_data['EVs_Inputs'].to_numpy()[:,1] * 1000
-        evs_max = evs_data['EVs_Inputs'].to_numpy()[:,2] * 1000
-        evs_trip = evs_data['EVs_Inputs'].to_numpy()[:,3] * 1000
+        initial_soc = evs_data['EVs_Inputs'].to_numpy()[:,0]
+        evs_min = evs_data['EVs_Inputs'].to_numpy()[:,1]
+        evs_max = evs_data['EVs_Inputs'].to_numpy()[:,2]
+        evs_trip = evs_data['EVs_Inputs'].to_numpy()[:,3]
+        pchmax_ev = evs_data['pchmax_ev'].to_numpy()
         evs_availability = evs_data['availability'].to_numpy()
         is_traveling = evs_data['is_traveling'].to_numpy()
         efficiency = 0.97
         p_charger = 7200
         #p_charger = contracted_power*0.95
         p_grid_max = 10000
-        degradation_cost = 0.08
-        num_evs = 2
+        degradation_cost = 0.02
+        num_evs = 10
         num_ess = 1
         community = self.cg.get_community()
         self.production_baseload = 0.85 * float(inputs.contracted_power)
 
 
-        exec = MinimizeCommunityCosts(inputs.dates, inputs.items, inputs.bins_capacities, inputs.timeslot_numbers, inputs.bins_maximum, inputs.items_max, self.production_baseload, fact, inputs.n_bins_per_hour, inputs.flexibilities, inputs.bins_export_prices, inputs.bins_import_prices, num_evs, evs_max, evs_min, evs_trip, initial_soc, evs_availability, is_traveling, efficiency, p_charger, degradation_cost, p_grid_max, num_ess, inputs.s_max, inputs.s_min, inputs.s_initial_soc, inputs.num_houses, inputs.houses_production, inputs.house_items, inputs.house_items_max, inputs.house_items_date, inputs.house_items_num, inputs.house_items_flex, inputs.house_s_soc, inputs.house_s_max, inputs.house_s_min)
+        exec = MinimizeCommunityCosts(inputs.dates, inputs.items, inputs.bins_capacities, inputs.timeslot_numbers, inputs.bins_maximum, inputs.items_max, self.production_baseload, fact, inputs.n_bins_per_hour, inputs.flexibilities, inputs.bins_export_prices, inputs.bins_import_prices, num_evs, evs_max, evs_min, evs_trip, initial_soc, pchmax_ev, evs_availability, is_traveling, efficiency, p_charger, degradation_cost, p_grid_max, num_ess, inputs.s_max, inputs.s_min, inputs.s_initial_soc, inputs.num_houses, inputs.houses_production, inputs.house_items, inputs.house_items_max, inputs.house_items_date, inputs.house_items_num, inputs.house_items_flex, inputs.house_s_soc, inputs.house_s_max, inputs.house_s_min)
         otimization = exec.execute_knapsack()
         self.dataframes = exec.dataframes
 

@@ -7,7 +7,7 @@ import pyomo.environ as pyo
 
 class MinimizeCommunityCosts:
 
-    def __init__(self, dates, items, bin_capacities, numbers, bins_maximum, items_maximum, baseload, fact, n_bins_per_hour, flexibilities, export_prices, import_prices, num_evs, evs_max, evs_min, evs_trip, initial_soc, evs_availability, evs_travelling, efficiency, p_charger, degradation_cost, p_grid_max, num_ess, s_max, s_min, s_initial_soc, num_houses, houses_production, house_items, house_items_max, house_items_date, house_items_num, house_items_flex, house_s_soc, house_s_max, house_s_min):
+    def __init__(self, dates, items, bin_capacities, numbers, bins_maximum, items_maximum, baseload, fact, n_bins_per_hour, flexibilities, export_prices, import_prices, num_evs, evs_max, evs_min, evs_trip, initial_soc, ev_p_charger, evs_availability, evs_travelling, efficiency, p_charger, degradation_cost, p_grid_max, num_ess, s_max, s_min, s_initial_soc, num_houses, houses_production, house_items, house_items_max, house_items_date, house_items_num, house_items_flex, house_s_soc, house_s_max, house_s_min):
         """
         This class receives as input some arrays with information about the timeslots and the bins, as well as some global data (baseload, fact and n_bins_per_hour)
 
@@ -42,7 +42,7 @@ class MinimizeCommunityCosts:
         self.minimum_soc = evs_min
         self.etrip = evs_trip
         self.initial_soc = initial_soc
-        #self.ev_p_charger = ev_p_charger
+        self.ev_p_charger = ev_p_charger
         self.availability = evs_availability
         self.travelling = evs_travelling
         self.efficiency = efficiency
@@ -159,7 +159,7 @@ class MinimizeCommunityCosts:
         data['minimum_soc'] = self.minimum_soc
         data['ev_trip'] = self.etrip
         data['initial_soc'] = self.initial_soc
-        #data['ev_p_charger'] = self.ev_p_charger
+        data['ev_p_charger'] = self.ev_p_charger
         data['availability'] = self.availability
         data['travelling'] = self.travelling
         data['efficiency'] = self.efficiency
@@ -216,7 +216,7 @@ class MinimizeCommunityCosts:
         model.ev_soc_max = pyo.Param(model.ev, initialize = self._auxDictionary(np.array(data['maximum_soc'])))
         model.ev_trip = pyo.Param(model.ev, initialize = self._auxDictionary(np.array(data['ev_trip'])))
         model.ev_initial_soc = pyo.Param(model.ev, initialize = self._auxDictionary(np.array(data['initial_soc'])))
-        #model.ev_p_charger = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['ev_p_charger'].transpose())))
+        model.ev_p_charger = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['ev_p_charger'].transpose())))
         model.availability = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['availability'].transpose())))
         model.travelling = pyo.Param(model.b, model.ev, initialize = self._auxDictionary(np.array(data['travelling'].transpose())))
         model.n = data['efficiency'] # Efficiency
@@ -393,15 +393,13 @@ class MinimizeCommunityCosts:
 
         # Charging considering the EVs availability
         def _charge_available(m,b,ev):
-            #return m.ev_charge[b,ev] <= m.ev_p_charger[b,ev] * m.availability[b,ev]
-            return m.ev_charge[b,ev] <= m.p_charger * m.availability[b,ev]
+            return m.ev_charge[b,ev] <= m.ev_p_charger[b,ev] * m.availability[b,ev]
         model.ch_available = pyo.Constraint(model.b, model.ev, rule = _charge_available)
 
 
         # Discharging considering the EVs availability
         def _discharge_available(m,b,ev):
-            #return m.ev_discharge[b,ev] <= m.ev_p_charger[b,ev] * m.availability[b,ev]
-            return m.ev_discharge[b,ev] <= m.p_charger * m.availability[b,ev]
+            return m.ev_discharge[b,ev] <= m.ev_p_charger[b,ev] * m.availability[b,ev]
         model.dch_available = pyo.Constraint(model.b, model.ev, rule = _discharge_available)
 
 
